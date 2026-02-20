@@ -26,6 +26,10 @@ export async function createCatalogItemAction(
     return { error: "Entidad no soportada" };
   }
 
+  if (config.allowMutations === false) {
+    return { error: "Este catalogo es de solo lectura en la API oficial" };
+  }
+
   try {
     const payload = buildPayloadFromForm(config, formData);
     await createEntityItem(entityKey, payload);
@@ -52,6 +56,10 @@ export async function updateCatalogItemAction(
     return { error: "Entidad no soportada" };
   }
 
+  if (config.allowMutations === false) {
+    return { error: "Este catalogo es de solo lectura en la API oficial" };
+  }
+
   try {
     const payload = buildPayloadFromForm(config, formData);
     await updateEntityItem(entityKey, id, payload);
@@ -72,6 +80,10 @@ export async function deleteCatalogItemAction(formData: FormData) {
   const config = getEntityConfig(entityKey);
 
   if (!config || !id) {
+    return;
+  }
+
+  if (config.allowMutations === false) {
     return;
   }
 

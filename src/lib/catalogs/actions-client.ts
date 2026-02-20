@@ -26,15 +26,24 @@ export async function fetchCatalogItems(entityKey: EntityKey): Promise<CatalogIt
 
 export async function createCatalogItem(entityKey: EntityKey, payload: Record<string, unknown>) {
   const config = entityConfigs[entityKey];
+  if (config.allowMutations === false) {
+    throw new Error("Este catalogo es de solo lectura en la API oficial");
+  }
   return apiRequestFromClient(config.adminEndpoint, { method: "POST", body: payload });
 }
 
 export async function updateCatalogItem(entityKey: EntityKey, id: number, payload: Record<string, unknown>) {
   const config = entityConfigs[entityKey];
+  if (config.allowMutations === false) {
+    throw new Error("Este catalogo es de solo lectura en la API oficial");
+  }
   return apiRequestFromClient(`${config.adminEndpoint}/${id}`, { method: "PATCH", body: payload });
 }
 
 export async function deleteCatalogItem(entityKey: EntityKey, id: number) {
   const config = entityConfigs[entityKey];
+  if (config.allowMutations === false) {
+    throw new Error("Este catalogo es de solo lectura en la API oficial");
+  }
   return apiRequestFromClient(`${config.adminEndpoint}/${id}`, { method: "DELETE" });
 }

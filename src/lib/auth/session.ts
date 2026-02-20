@@ -5,9 +5,21 @@ import { apiRequest, ApiError } from "@/lib/api/client";
 import { hasAdminRole } from "@/lib/auth/roles";
 import type { AuthUser } from "@/lib/auth/types";
 
-function clearAuthCookies(cookieStore: Awaited<ReturnType<typeof cookies>>) {
-  cookieStore.delete(ACCESS_TOKEN_COOKIE);
-  cookieStore.delete(REFRESH_TOKEN_COOKIE);
+function clearAuthCookies(
+  cookieStore: Awaited<ReturnType<typeof cookies>>,
+  options: { ignoreMutationErrors?: boolean } = {},
+) {
+  const { ignoreMutationErrors = false } = options;
+
+  for (const cookieName of [ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE]) {
+    try {
+      cookieStore.delete(cookieName);
+    } catch (error) {
+      if (!ignoreMutationErrors) {
+        throw error;
+      }
+    }
+  }
 }
 
 export async function getCurrentUser(): Promise<AuthUser | null> {
@@ -31,9 +43,19 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 
     return response as AuthUser;
   } catch (error) {
-    if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-      clearAuthCookies(cookieStore);
-      return null;
+    if (error instanceof ApiError) {
+      if (error.status === 401 || error.status === 403) {
+        clearAuthCookies(cookieStore, { ignoreMutationErrors: true });
+        return null;
+      }
+
+      if (error.status === 429) {
+        return null;
+      }
+
+      if (error.status >= 500) {
+        return null;
+      }
     }
 
     throw error;
@@ -44,7 +66,7 @@ export async function requireAdminUser() {
   const user = await getCurrentUser();
 
   if (!user || !hasAdminRole(user)) {
-    redirect("/login");
+    redirect("/api/auth/logout?next=/login");
   }
 
   return user;

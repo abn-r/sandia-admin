@@ -1,21 +1,34 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
-import { Compass, Loader2, AlertCircle, Lock, Mail } from "lucide-react";
+import { useActionState, useEffect, useState } from "react";
+import { Loader2, AlertCircle, Lock, Mail, Eye, EyeOff, ShieldCheck, Sparkles, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { loginAction } from "@/lib/auth/actions";
+import { useIsClient } from "@/lib/hooks/use-is-client";
+import { getClientLocale } from "@/lib/i18n/client";
+import { t } from "@/lib/i18n/messages";
+import { AppLogo } from "@/components/shared/app-logo";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const initialState = { error: undefined };
 
 export default function LoginPage() {
   const [state, action, pending] = useActionState(loginAction, initialState);
-  const [mounted, setMounted] = useState(false);
-  const [focusedField, setFocusedField] = useState<string | null>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useIsClient();
+  const [focusedField, setFocusedField] = useState<"email" | "password" | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const locale = mounted ? getClientLocale() : "es-MX";
+  const highlights = [
+    t(locale, "login_panel_feature_1"),
+    t(locale, "login_panel_feature_2"),
+    t(locale, "login_panel_feature_3"),
+  ];
 
   useEffect(() => {
     if (state.error) {
@@ -23,146 +36,183 @@ export default function LoginPage() {
     }
   }, [state.error]);
 
-  useEffect(() => {
-    const card = cardRef.current;
-    if (!card) return;
-
-    const handleMove = (e: MouseEvent) => {
-      const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      card.style.setProperty("--mouse-x", `${x}px`);
-      card.style.setProperty("--mouse-y", `${y}px`);
-    };
-
-    card.addEventListener("mousemove", handleMove);
-    return () => card.removeEventListener("mousemove", handleMove);
-  }, []);
-
   return (
-    <div
-      className="transition-all duration-700 ease-out"
-      style={{
-        opacity: mounted ? 1 : 0,
-        transform: mounted ? "translateY(0) scale(1)" : "translateY(20px) scale(0.98)",
-      }}
-    >
-      {/* Logo con glow animado */}
-      <div className="mb-10 text-center">
-        <div className="relative mx-auto mb-5 h-16 w-16">
-          <div className="absolute inset-0 animate-pulse rounded-2xl bg-[rgba(43,43,238,0.3)] blur-xl" />
-          <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2b2bee] to-[#1e1ebd] shadow-[0_8px_32px_rgba(43,43,238,0.4)]">
-            <Compass className="h-8 w-8 text-white" />
-          </div>
+    <div className="relative animate-in fade-in duration-500">
+      <div className="absolute right-0 top-0 z-20">
+        <div className="rounded-full border border-border/70 bg-card/70 p-0.5 shadow-sm backdrop-blur">
+          <ThemeToggle />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-white">SACDIA</h1>
-        <p className="mt-1.5 text-sm text-white/40">Panel Administrativo</p>
       </div>
 
-      {/* Card con sombra y efecto de luz */}
-      <div
-        ref={cardRef}
-        className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#16162c] p-7 shadow-[0_20px_70px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.05)]"
-      >
-        {/* Efecto de luz que sigue el mouse */}
-        <div
-          className="pointer-events-none absolute -inset-px rounded-2xl transition-opacity duration-300"
-          style={{
-            background: "radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(43,43,238,0.07), transparent 40%)",
-            opacity: focusedField ? 1 : 0,
-          }}
-        />
+      <div className="grid gap-5 md:grid-cols-[1.05fr_0.95fr] md:gap-6">
+        <section className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/55 p-6 shadow-[0_16px_40px_rgba(15,23,42,0.12)] backdrop-blur animate-in fade-in slide-in-from-left-2 duration-500 md:p-7 dark:shadow-[0_22px_50px_rgba(0,0,0,0.35)]">
+          <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-primary/20 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-20 -left-8 h-36 w-36 rounded-full bg-primary/12 blur-3xl" />
 
-        <div className="relative">
-          <h2 className="text-lg font-semibold text-white">Bienvenido</h2>
-          <p className="mt-1 text-[13px] text-slate-400">
-            Inicia sesion con tu cuenta de administrador.
-          </p>
-
-          <form action={action} className="mt-7 space-y-5">
-            {/* Campo Email */}
-            <div className="space-y-2">
-              <label htmlFor="email" className="block text-xs font-medium uppercase tracking-wider text-slate-400">
-                Correo electronico
-              </label>
-              <div className="group relative">
-                <Mail className={`absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-colors duration-200 ${focusedField === "email" ? "text-[#2b2bee]" : "text-slate-500"}`} />
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="admin@sacdia.org"
-                  required
-                  autoComplete="email"
-                  onFocus={() => setFocusedField("email")}
-                  onBlur={() => setFocusedField(null)}
-                  className="h-12 w-full rounded-xl border border-slate-700 bg-slate-900/50 pl-11 pr-4 text-sm text-white placeholder:text-slate-500 transition-all duration-200 focus:border-[#2b2bee]/40 focus:bg-slate-900 focus:outline-none focus:shadow-[0_0_0_3px_rgba(43,43,238,0.12)]"
-                />
+          <div className="relative">
+            <div className="flex items-center gap-3">
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-border/70 bg-card/85 shadow-sm">
+                <AppLogo className="h-10 w-10" priority />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  {t(locale, "login_brand_subtitle")}
+                </p>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">SACDIA</h1>
               </div>
             </div>
 
-            {/* Campo Password */}
-            <div className="space-y-2">
-              <label htmlFor="password" className="block text-xs font-medium uppercase tracking-wider text-slate-400">
-                Contrasena
-              </label>
-              <div className="group relative">
-                <Lock className={`absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-colors duration-200 ${focusedField === "password" ? "text-[#2b2bee]" : "text-slate-500"}`} />
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="••••••••"
-                  required
-                  autoComplete="current-password"
-                  onFocus={() => setFocusedField("password")}
-                  onBlur={() => setFocusedField(null)}
-                  className="h-12 w-full rounded-xl border border-slate-700 bg-slate-900/50 pl-11 pr-4 text-sm text-white placeholder:text-slate-500 transition-all duration-200 focus:border-[#2b2bee]/40 focus:bg-slate-900 focus:outline-none focus:shadow-[0_0_0_3px_rgba(43,43,238,0.12)]"
-                />
-              </div>
+            <p className="mt-4 text-sm text-muted-foreground">
+              {t(locale, "login_panel_description")}
+            </p>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Badge variant="default" className="rounded-full px-3 py-1 text-[11px]">
+                <span className="inline-flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {t(locale, "login_security_badge")}
+                </span>
+              </Badge>
             </div>
 
-            {/* Error */}
-            {state.error ? (
-              <div className="flex items-center gap-2.5 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-[13px] text-red-400">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                {state.error}
-              </div>
-            ) : null}
+            <Separator className="my-5 bg-border/70" />
 
-            {/* Boton submit */}
-            <button
-              type="submit"
-              disabled={pending}
-              className="group relative mt-2 flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-[#2b2bee] to-[#1e1ebd] text-sm font-semibold text-white shadow-[0_4px_20px_rgba(43,43,238,0.25)] transition-all duration-200 hover:shadow-[0_6px_30px_rgba(43,43,238,0.4)] hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
-            >
-              {/* Shimmer animado */}
-              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-              <span className="relative">
-                {pending ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Verificando...
+            <ul className="space-y-3">
+              {highlights.map((item, index) => (
+                <li
+                  key={item}
+                  className="flex items-start gap-3 rounded-lg border border-border/50 bg-background/45 px-3.5 py-3 animate-in fade-in slide-in-from-bottom-2 duration-300"
+                  style={{ animationDelay: `${120 + index * 80}ms`, animationFillMode: "backwards" }}
+                >
+                  <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/12 text-primary">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
                   </span>
-                ) : (
-                  "Iniciar sesion"
-                )}
-              </span>
-            </button>
-          </form>
-        </div>
-      </div>
+                  <span className="text-sm text-foreground/90">{item}</span>
+                </li>
+              ))}
+            </ul>
 
-      {/* Footer */}
-      <div className="mt-8 text-center">
-        <p className="text-[11px] text-white/20">
-          Sistema de Administracion de Clubes &middot; Iglesia Adventista
-        </p>
-        <div className="mx-auto mt-3 flex items-center justify-center gap-1.5">
-          <div className="h-1 w-1 rounded-full bg-[#2b2bee]/40" />
-          <div className="h-1 w-6 rounded-full bg-[#2b2bee]/30" />
-          <div className="h-1 w-1 rounded-full bg-[#2b2bee]/40" />
-        </div>
+            <p className="mt-6 text-[11px] text-muted-foreground/80">
+              {t(locale, "login_footer")}
+            </p>
+          </div>
+        </section>
+
+        <Card className="relative overflow-hidden border-border/80 bg-card shadow-[0_20px_70px_rgba(15,23,42,0.16),0_0_0_1px_rgba(255,255,255,0.04)] animate-in fade-in slide-in-from-bottom-2 duration-500 dark:shadow-[0_24px_70px_rgba(0,0,0,0.52)]">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/30 via-primary to-primary/30" />
+
+          <CardHeader className="space-y-3 p-7 pb-3">
+            <Badge variant="default" className="w-fit rounded-full px-3 py-1 text-[11px]">
+              <span className="inline-flex items-center gap-1.5">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                {t(locale, "login_security_badge")}
+              </span>
+            </Badge>
+            <CardTitle className="text-xl font-semibold tracking-tight text-foreground">
+              {t(locale, "login_welcome_title")}
+            </CardTitle>
+            <CardDescription className="text-[13px]">
+              {t(locale, "login_welcome_description")}
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="p-7 pt-1">
+            <form action={action} method="POST" autoComplete="on" className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-xs uppercase tracking-wider text-muted-foreground">
+                  {t(locale, "login_email_label")}
+                </Label>
+                <div className="group relative">
+                  <Mail
+                    className={`absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-colors duration-200 ${
+                      focusedField === "email" ? "text-primary" : "text-muted-foreground"
+                    }`}
+                  />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="admin@sacdia.org"
+                    required
+                    autoComplete="username"
+                    inputMode="email"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    onFocus={() => setFocusedField("email")}
+                    onBlur={() => setFocusedField(null)}
+                    className="h-12 rounded-xl border-input bg-background/85 pl-11 text-foreground placeholder:text-muted-foreground transition-colors focus-visible:border-primary/45 focus-visible:bg-background focus-visible:ring-primary/20"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-xs uppercase tracking-wider text-muted-foreground">
+                  {t(locale, "login_password_label")}
+                </Label>
+                <div className="group relative">
+                  <Lock
+                    className={`absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-colors duration-200 ${
+                      focusedField === "password" ? "text-primary" : "text-muted-foreground"
+                    }`}
+                  />
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    required
+                    autoComplete="current-password"
+                    onFocus={() => setFocusedField("password")}
+                    onBlur={() => setFocusedField(null)}
+                    className="h-12 rounded-xl border-input bg-background/85 pl-11 pr-11 text-foreground placeholder:text-muted-foreground transition-colors focus-visible:border-primary/45 focus-visible:bg-background focus-visible:ring-primary/20"
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => setShowPassword((current) => !current)}
+                    aria-label={showPassword ? t(locale, "login_hide_password") : t(locale, "login_show_password")}
+                    className="absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">{t(locale, "login_password_hint")}</p>
+              </div>
+
+              {state.error ? (
+                <div className="flex items-center gap-2.5 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-[13px] text-destructive animate-in fade-in slide-in-from-top-1">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  {state.error}
+                </div>
+              ) : null}
+
+              <Button
+                type="submit"
+                disabled={pending}
+                size="lg"
+                className="group relative h-12 w-full overflow-hidden rounded-xl bg-gradient-to-r from-primary to-primary/85 text-sm font-semibold shadow-[0_6px_24px_rgba(43,43,238,0.3)] transition-all duration-200 hover:brightness-110 hover:shadow-[0_8px_34px_rgba(43,43,238,0.42)] active:scale-[0.99]"
+              >
+                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                <span className="relative">
+                  {pending ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {t(locale, "login_submit_loading")}
+                    </span>
+                  ) : (
+                    t(locale, "login_submit_idle")
+                  )}
+                </span>
+              </Button>
+
+              <p className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
+                {t(locale, "login_access_notice")}
+              </p>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

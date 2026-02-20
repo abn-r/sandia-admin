@@ -156,7 +156,7 @@ export default function LoginPage() {
       {/* Footer */}
       <div className="mt-8 text-center">
         <p className="text-[11px] text-white/20">
-          Sistema de Administracion de Clubes &middot; Iglesia Adventista
+          Sistema de Administracion de Clubes &middot; Iglesia Adventista del Séptimo Día
         </p>
         <div className="mx-auto mt-3 flex items-center justify-center gap-1.5">
           <div className="h-1 w-1 rounded-full bg-[#00b4a0]/40" />

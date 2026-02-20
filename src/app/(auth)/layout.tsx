@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTheme } from "next-themes";
+import { useIsClient } from "@/lib/hooks/use-is-client";
 
-function AnimatedOrbs() {
+function AnimatedOrbs({ darkMode }: { darkMode: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -18,13 +20,21 @@ function AnimatedOrbs() {
     canvas.width = width;
     canvas.height = height;
 
-    const orbs = [
-      { x: width * 0.2, y: height * 0.3, r: 280, color: "rgba(43, 43, 238, 0.12)", vx: 0.3, vy: 0.2, phase: 0 },
-      { x: width * 0.8, y: height * 0.7, r: 320, color: "rgba(30, 30, 189, 0.08)", vx: -0.25, vy: 0.15, phase: 2 },
-      { x: width * 0.5, y: height * 0.2, r: 200, color: "rgba(100, 100, 255, 0.10)", vx: 0.2, vy: -0.3, phase: 4 },
-      { x: width * 0.3, y: height * 0.8, r: 250, color: "rgba(43, 43, 238, 0.06)", vx: -0.15, vy: -0.2, phase: 1 },
-      { x: width * 0.7, y: height * 0.4, r: 180, color: "rgba(80, 80, 255, 0.09)", vx: 0.35, vy: 0.25, phase: 3 },
-    ];
+    const orbs = darkMode
+      ? [
+          { x: width * 0.2, y: height * 0.3, r: 280, color: "rgba(43, 43, 238, 0.12)", vx: 0.3, vy: 0.2, phase: 0 },
+          { x: width * 0.8, y: height * 0.7, r: 320, color: "rgba(30, 30, 189, 0.08)", vx: -0.25, vy: 0.15, phase: 2 },
+          { x: width * 0.5, y: height * 0.2, r: 200, color: "rgba(100, 100, 255, 0.10)", vx: 0.2, vy: -0.3, phase: 4 },
+          { x: width * 0.3, y: height * 0.8, r: 250, color: "rgba(43, 43, 238, 0.06)", vx: -0.15, vy: -0.2, phase: 1 },
+          { x: width * 0.7, y: height * 0.4, r: 180, color: "rgba(80, 80, 255, 0.09)", vx: 0.35, vy: 0.25, phase: 3 },
+        ]
+      : [
+          { x: width * 0.2, y: height * 0.3, r: 260, color: "rgba(43, 43, 238, 0.09)", vx: 0.3, vy: 0.2, phase: 0 },
+          { x: width * 0.8, y: height * 0.7, r: 290, color: "rgba(20, 20, 120, 0.05)", vx: -0.25, vy: 0.15, phase: 2 },
+          { x: width * 0.5, y: height * 0.2, r: 190, color: "rgba(100, 100, 255, 0.07)", vx: 0.2, vy: -0.3, phase: 4 },
+          { x: width * 0.3, y: height * 0.8, r: 220, color: "rgba(43, 43, 238, 0.04)", vx: -0.15, vy: -0.2, phase: 1 },
+          { x: width * 0.7, y: height * 0.4, r: 160, color: "rgba(80, 80, 255, 0.06)", vx: 0.35, vy: 0.25, phase: 3 },
+        ];
 
     const particles: { x: number; y: number; r: number; alpha: number; speed: number }[] = [];
     for (let i = 0; i < 40; i++) {
@@ -66,7 +76,8 @@ function AnimatedOrbs() {
         }
         ctx!.beginPath();
         ctx!.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx!.fillStyle = `rgba(150, 150, 255, ${p.alpha})`;
+        const particleTone = darkMode ? "150, 150, 255" : "80, 80, 140";
+        ctx!.fillStyle = `rgba(${particleTone}, ${p.alpha})`;
         ctx!.fill();
       }
 
@@ -87,30 +98,36 @@ function AnimatedOrbs() {
       cancelAnimationFrame(animId);
       window.removeEventListener("resize", handleResize);
     };
-  }, []);
+  }, [darkMode]);
 
   return <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />;
 }
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
+  const { resolvedTheme } = useTheme();
+  const mounted = useIsClient();
+  // Keep SSR/client first render consistent to avoid hydration mismatches.
+  const darkMode = mounted ? resolvedTheme !== "light" : false;
+
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#101022] p-4">
-      <AnimatedOrbs />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-slate-100 via-white to-slate-200 p-4 dark:from-[#101022] dark:via-[#0f0f20] dark:to-[#151530]">
+      <AnimatedOrbs darkMode={darkMode} />
 
       {/* Gradiente radial de fondo */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(43,43,238,0.08)_0%,transparent_70%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(43,43,238,0.07)_0%,transparent_70%)] dark:bg-[radial-gradient(ellipse_at_center,rgba(43,43,238,0.09)_0%,transparent_70%)]" />
 
       {/* Rejilla sutil */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.04]"
+        className="pointer-events-none absolute inset-0 opacity-[0.05] dark:opacity-[0.04]"
         style={{
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
+          backgroundImage: darkMode
+            ? "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)"
+            : "linear-gradient(rgba(15,23,42,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.05) 1px, transparent 1px)",
           backgroundSize: "60px 60px",
         }}
       />
 
-      <div className="relative z-10 w-full max-w-[420px]">{children}</div>
+      <div className="relative z-10 w-full max-w-5xl">{children}</div>
     </div>
   );
 }

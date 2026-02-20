@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Menu } from "lucide-react";
-import { usePathname } from "next/navigation";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,11 +13,6 @@ import {
 
 export function MobileSidebar() {
   const [open, setOpen] = useState(false);
-  const pathname = usePathname();
-
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -29,7 +23,7 @@ export function MobileSidebar() {
       </SheetTrigger>
       <SheetContent side="left" className="w-64 p-0">
         <SheetTitle className="sr-only">Menu de navegacion</SheetTitle>
-        <AppSidebar />
+        <AppSidebar onNavigate={() => setOpen(false)} />
       </SheetContent>
     </Sheet>
   );

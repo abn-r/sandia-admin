@@ -1,5 +1,9 @@
-import { CatalogCrudPage } from "@/components/catalogs/catalog-crud-page";
+import { CatalogListPage } from "@/components/catalogs/catalog-list-page";
 
-export default function AllergiesPage() {
-  return <CatalogCrudPage entityKey="allergies" />;
+export default function AllergiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  return <CatalogListPage entityKey="allergies" searchParams={searchParams} />;
 }

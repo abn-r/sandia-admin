@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { KeyRound, Shield } from "lucide-react";
+import { KeyRound, Shield, ArrowRight } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -31,13 +31,16 @@ export default function RbacIndexPage() {
           const Icon = section.icon;
           return (
             <Link key={section.href} href={section.href}>
-              <Card className="transition-shadow hover:shadow-md">
+              <Card className="group transition-all hover:border-primary/30 hover:shadow-md">
                 <CardContent className="flex items-start gap-4 p-5">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <Icon className="h-5 w-5" />
                   </div>
-                  <div>
-                    <h3 className="text-sm font-semibold">{section.title}</h3>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold">{section.title}</h3>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-all group-hover:translate-x-0.5 group-hover:text-primary group-hover:opacity-100" />
+                    </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">{section.description}</p>
                   </div>
                 </CardContent>

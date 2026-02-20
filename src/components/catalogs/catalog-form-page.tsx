@@ -47,6 +47,21 @@ function normalizeFormValues(item: Record<string, unknown>): CatalogFormValues {
 
 export async function CatalogNewPage({ entityKey }: { entityKey: EntityKey }) {
   const config = entityConfigs[entityKey];
+
+  if (config.allowMutations === false) {
+    return (
+      <div className="space-y-4">
+        <PageHeader
+          title={`${config.singularTitle} en modo solo lectura`}
+          description="Este catalogo no expone endpoints de creacion/edicion en la API oficial."
+        />
+        <Link href={config.routeBase}>
+          <Button variant="outline">Volver</Button>
+        </Link>
+      </div>
+    );
+  }
+
   const selectOptions = await buildSelectOptions(entityKey);
 
   const action = createCatalogItemAction.bind(null, entityKey, config.routeBase);
@@ -75,6 +90,21 @@ export async function CatalogNewPage({ entityKey }: { entityKey: EntityKey }) {
 
 export async function CatalogEditPage({ entityKey, id }: { entityKey: EntityKey; id: number }) {
   const config = entityConfigs[entityKey];
+
+  if (config.allowMutations === false) {
+    return (
+      <div className="space-y-4">
+        <PageHeader
+          title={`${config.singularTitle} en modo solo lectura`}
+          description="Este catalogo no expone endpoints de creacion/edicion en la API oficial."
+        />
+        <Link href={config.routeBase}>
+          <Button variant="outline">Volver</Button>
+        </Link>
+      </div>
+    );
+  }
+
   const item = await getEntityItemById(entityKey, id);
 
   if (!item) {

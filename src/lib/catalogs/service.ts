@@ -17,24 +17,54 @@ function getIdValue(item: CatalogItem, config: EntityConfig): number {
   return Number(id ?? 0);
 }
 
-function normalizeItem(item: CatalogItem): CatalogItem {
-  if (typeof item.active === "boolean") {
-    return item;
+function normalizeItem(entityKey: EntityKey, item: CatalogItem): CatalogItem {
+  const normalized: CatalogItem = { ...item };
+
+  // Legacy naming in districts/churches still uses districlub_type_id in backend.
+  if (entityKey === "districts" || entityKey === "churches") {
+    if (normalized.district_id === undefined && normalized.districlub_type_id !== undefined) {
+      normalized.district_id = normalized.districlub_type_id;
+    }
   }
 
-  return { ...item, active: true };
+  if (entityKey === "ecclesiastical-years" && normalized.name === undefined && normalized.year_id !== undefined) {
+    normalized.name = `Anio ${normalized.year_id}`;
+  }
+
+  if (typeof normalized.active !== "boolean") {
+    normalized.active = true;
+  }
+
+  return normalized;
 }
 
-function normalizeCollection(payload: unknown): CatalogItem[] {
+function normalizeCollection(entityKey: EntityKey, payload: unknown): CatalogItem[] {
   if (Array.isArray(payload)) {
-    return payload.map((item) => normalizeItem(item as CatalogItem));
+    return payload.map((item) => normalizeItem(entityKey, item as CatalogItem));
   }
 
   if (payload && typeof payload === "object" && Array.isArray((payload as { data?: unknown[] }).data)) {
-    return (payload as { data: unknown[] }).data.map((item) => normalizeItem(item as CatalogItem));
+    return (payload as { data: unknown[] }).data.map((item) =>
+      normalizeItem(entityKey, item as CatalogItem),
+    );
   }
 
   return [];
+}
+
+function normalizeEntityItem(entityKey: EntityKey, payload: unknown): CatalogItem | null {
+  if (payload && typeof payload === "object") {
+    const data = (payload as { data?: unknown }).data;
+    if (data && typeof data === "object" && !Array.isArray(data)) {
+      return normalizeItem(entityKey, data as CatalogItem);
+    }
+  }
+
+  if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+    return normalizeItem(entityKey, payload as CatalogItem);
+  }
+
+  return null;
 }
 
 export async function listEntityItems(entityKey: EntityKey, query: Record<string, string | undefined> = {}) {
@@ -53,7 +83,7 @@ export async function listEntityItems(entityKey: EntityKey, query: Record<string
 
   try {
     const payload = await apiRequest<unknown>(path);
-    return normalizeCollection(payload);
+    return normalizeCollection(entityKey, payload);
   } catch (error) {
     if (error instanceof ApiError && [404, 405].includes(error.status)) {
       return [];
@@ -65,13 +95,26 @@ export async function listEntityItems(entityKey: EntityKey, query: Record<string
 
 export async function getEntityItemById(entityKey: EntityKey, id: number) {
   const config = entityConfigs[entityKey];
+
+  try {
+    const payload = await apiRequest<unknown>(`${config.adminEndpoint}/${id}`);
+    const entity = normalizeEntityItem(entityKey, payload);
+    if (entity) {
+      return entity;
+    }
+  } catch (error) {
+    if (!(error instanceof ApiError && [404, 405].includes(error.status))) {
+      throw error;
+    }
+  }
+
   const items = await listEntityItems(entityKey);
   return items.find((item) => getIdValue(item, config) === id) ?? null;
 }
 
 export async function getSelectOptions(entityKey: EntityKey) {
   const config = entityConfigs[entityKey];
-  const items = await listEntityItems(entityKey);
+  const items = (await listEntityItems(entityKey)).filter((item) => item.active !== false);
 
   return items.map((item) => ({
     label: String(item[config.nameField] ?? `#${item[config.idField] ?? ""}`),

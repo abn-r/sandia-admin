@@ -1,4 +1,4 @@
-import axios, { AxiosError, type AxiosRequestConfig } from "axios";
+import axios, { AxiosError } from "axios";
 import { ACCESS_TOKEN_COOKIE } from "@/lib/auth/cookies";
 
 export type ApiMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
@@ -92,6 +92,67 @@ function normalizeError(error: unknown): ApiError {
   return new ApiError("Error inesperado", 500, null);
 }
 
+function normalizeUnexpectedError(error: unknown): ApiError {
+  if (error instanceof ApiError) {
+    return error;
+  }
+
+  if (error instanceof Error && typeof error.message === "string" && error.message.trim().length > 0) {
+    return new ApiError(error.message, 500, null);
+  }
+
+  return new ApiError("Error inesperado", 500, null);
+}
+
+function buildRequestUrl(path: string, params?: ApiRequestOptions["params"]) {
+  const isAbsolute = /^https?:\/\//i.test(path);
+  const base = API_BASE_URL.endsWith("/") ? API_BASE_URL : `${API_BASE_URL}/`;
+  const url = isAbsolute ? new URL(path) : new URL(path.replace(/^\/+/, ""), base);
+
+  if (params) {
+    for (const [key, value] of Object.entries(params)) {
+      if (typeof value !== "undefined") {
+        url.searchParams.set(key, String(value));
+      }
+    }
+  }
+
+  return url;
+}
+
+function isBodyInit(value: unknown): value is BodyInit {
+  if (typeof value === "string") {
+    return true;
+  }
+
+  if (
+    value instanceof FormData ||
+    value instanceof URLSearchParams ||
+    value instanceof Blob ||
+    value instanceof ArrayBuffer ||
+    ArrayBuffer.isView(value)
+  ) {
+    return true;
+  }
+
+  return typeof ReadableStream !== "undefined" && value instanceof ReadableStream;
+}
+
+async function parseResponsePayload(response: Response): Promise<unknown> {
+  const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+
+  if (contentType.includes("application/json")) {
+    try {
+      return await response.json();
+    } catch {
+      return null;
+    }
+  }
+
+  const text = await response.text();
+  return text.trim().length > 0 ? text : null;
+}
+
 async function resolveToken(token?: string) {
   if (token) {
     return token;
@@ -142,27 +203,47 @@ function ensureClientInterceptors() {
 }
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-  const { method = "GET", body, headers, token, params } = options;
+  const { method = "GET", body, headers, token, params, cache } = options;
   const resolvedToken = await resolveToken(token);
+  const requestHeaders = new Headers(toRecord(headers));
+  const requestUrl = buildRequestUrl(path, params);
 
-  const requestConfig: AxiosRequestConfig = {
-    baseURL: API_BASE_URL,
-    url: path,
-    method,
-    data: body,
-    params,
-    headers: {
-      Accept: "application/json",
-      ...toRecord(headers),
-      ...(resolvedToken ? { Authorization: `Bearer ${resolvedToken}` } : {}),
-    },
-  };
+  if (!requestHeaders.has("Accept")) {
+    requestHeaders.set("Accept", "application/json");
+  }
+
+  if (resolvedToken && !requestHeaders.has("Authorization")) {
+    requestHeaders.set("Authorization", `Bearer ${resolvedToken}`);
+  }
+
+  let requestBody: BodyInit | undefined;
+  if (typeof body !== "undefined" && method !== "GET") {
+    if (isBodyInit(body)) {
+      requestBody = body;
+    } else {
+      if (!requestHeaders.has("Content-Type")) {
+        requestHeaders.set("Content-Type", "application/json");
+      }
+      requestBody = JSON.stringify(body);
+    }
+  }
 
   try {
-    const response = await axios.request<T>(requestConfig);
-    return response.data;
+    const response = await fetch(requestUrl, {
+      method,
+      headers: requestHeaders,
+      body: requestBody,
+      cache,
+    });
+    const payload = await parseResponsePayload(response);
+
+    if (!response.ok) {
+      throw new ApiError(extractMessage(payload, response.status), response.status, payload);
+    }
+
+    return payload as T;
   } catch (error) {
-    throw normalizeError(error);
+    throw normalizeUnexpectedError(error);
   }
 }
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 const geographyLinks = [
-  { href: "/dashboard/catalogs/geography/countries", label: "Paises" },
+  { href: "/dashboard/catalogs/geography/countries", label: "Países" },
   { href: "/dashboard/catalogs/geography/unions", label: "Uniones" },
   { href: "/dashboard/catalogs/geography/local-fields", label: "Campos Locales" },
   { href: "/dashboard/catalogs/geography/districts", label: "Distritos" },

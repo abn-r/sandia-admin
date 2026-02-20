@@ -6,6 +6,7 @@ import type { CatalogActionState } from "@/lib/catalogs/actions";
 import { entityConfigs, type EntityKey } from "@/lib/catalogs/entities";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -15,6 +16,32 @@ export type CatalogFormValues = Record<string, string | number | boolean | null 
 
 type SelectOptionsMap = Partial<Record<EntityKey, Array<{ label: string; value: number }>>>;
 const initialState: CatalogActionState = {};
+
+function toDateInputValue(value: unknown) {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    const match = trimmed.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) {
+      return match[1];
+    }
+
+    const parsed = new Date(trimmed);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString().slice(0, 10);
+    }
+
+    return "";
+  }
+
+  if (typeof value === "number") {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString().slice(0, 10);
+    }
+  }
+
+  return "";
+}
 
 export function CatalogForm({
   entityKey,
@@ -45,17 +72,17 @@ export function CatalogForm({
 
               if (field.type === "checkbox") {
                 return (
-                  <label key={field.name} className="flex items-center gap-2.5 text-sm sm:col-span-2">
-                    <input
-                      type="checkbox"
+                  <div key={field.name} className="flex items-center gap-2.5 text-sm sm:col-span-2">
+                    <Checkbox
+                      id={field.name}
                       name={field.name}
+                      value="true"
                       defaultChecked={
                         typeof defaultValue === "boolean" ? defaultValue : defaultValue === undefined ? true : false
                       }
-                      className="h-4 w-4 rounded border-input accent-primary"
                     />
-                    {field.label}
-                  </label>
+                    <Label htmlFor={field.name}>{field.label}</Label>
+                  </div>
                 );
               }
 
@@ -98,6 +125,12 @@ export function CatalogForm({
               }
 
               const inputType = field.type === "date" ? "date" : field.type === "number" ? "number" : "text";
+              const normalizedValue =
+                field.type === "date"
+                  ? toDateInputValue(defaultValue)
+                  : defaultValue !== undefined && defaultValue !== null
+                    ? String(defaultValue)
+                    : "";
 
               return (
                 <div key={field.name} className="space-y-1.5">
@@ -106,7 +139,7 @@ export function CatalogForm({
                     id={field.name}
                     name={field.name}
                     type={inputType}
-                    defaultValue={defaultValue !== undefined && defaultValue !== null ? String(defaultValue) : ""}
+                    defaultValue={normalizedValue}
                     placeholder={field.placeholder}
                     required={field.required}
                   />

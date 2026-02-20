@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, isValid, parseISO } from "date-fns";
 import { Plus, Pencil, Ban, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -48,8 +49,7 @@ export function CatalogCrudPage({ entityKey }: { entityKey: EntityKey }) {
   const config: EntityConfig = entityConfigs[entityKey];
   const visibleFields = config.fields.filter((f) => f.name !== "active");
 
-  const [items, setItems] = useState<CatalogItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
 
   // Dialog states
@@ -58,16 +58,11 @@ export function CatalogCrudPage({ entityKey }: { entityKey: EntityKey }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<CatalogItem | null>(null);
 
-  const loadItems = useCallback(async () => {
-    setLoading(true);
-    const data = await fetchCatalogItems(entityKey);
-    setItems(data);
-    setLoading(false);
-  }, [entityKey]);
-
-  useEffect(() => {
-    loadItems();
-  }, [loadItems]);
+  const { data = [], isLoading } = useQuery({
+    queryKey: ["catalog-items", entityKey],
+    queryFn: () => fetchCatalogItems(entityKey),
+  });
+  const items = data;
 
   /* ─── Filtrado ─── */
   const filteredItems = items.filter((item) => {
@@ -104,7 +99,7 @@ export function CatalogCrudPage({ entityKey }: { entityKey: EntityKey }) {
       await createCatalogItem(entityKey, payload);
       toast.success(`${config.singularTitle} creado correctamente`);
     }
-    await loadItems();
+    await queryClient.invalidateQueries({ queryKey: ["catalog-items", entityKey] });
   }
 
   async function handleDeleteConfirm() {
@@ -113,7 +108,7 @@ export function CatalogCrudPage({ entityKey }: { entityKey: EntityKey }) {
     await deleteCatalogItem(entityKey, id);
     toast.success(`${config.singularTitle} desactivado correctamente`);
     setDeleteTarget(null);
-    await loadItems();
+    await queryClient.invalidateQueries({ queryKey: ["catalog-items", entityKey] });
   }
 
   return (
@@ -142,7 +137,7 @@ export function CatalogCrudPage({ entityKey }: { entityKey: EntityKey }) {
       </div>
 
       {/* Loading */}
-      {loading ? (
+      {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
